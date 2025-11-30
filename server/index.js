@@ -113,12 +113,13 @@ app.get('/download', async (req, res) => {
         // Get title first for filename
         const args = [
             videoURL,
-            '--dump-json'
+            '--dump-json',
+            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         ];
+
         if (fs.existsSync(cookiesPath)) {
             args.push('--cookies', cookiesPath);
         }
-        args.push('--extractor-args', 'youtube:player_client=tv');
 
         const metadata = await ytDlpWrap.execPromise(args);
         const info = JSON.parse(metadata);
@@ -143,7 +144,7 @@ app.get('/download', async (req, res) => {
         if (fs.existsSync(cookiesPath)) {
             streamArgs.push('--cookies', cookiesPath);
         }
-        streamArgs.push('--extractor-args', 'youtube:player_client=tv');
+        streamArgs.push('--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
         const stream = ytDlpWrap.execStream(streamArgs);
 
