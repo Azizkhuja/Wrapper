@@ -34,6 +34,20 @@ const ensureBinary = async () => {
     }
 };
 
+const cookiesPath = path.join(__dirname, 'cookies.txt');
+const ensureCookies = () => {
+    if (process.env.YOUTUBE_COOKIES) {
+        try {
+            fs.writeFileSync(cookiesPath, process.env.YOUTUBE_COOKIES);
+            console.log('Cookies file created from environment variable');
+        } catch (err) {
+            console.error('Error creating cookies file:', err);
+        }
+    } else {
+        console.log('No YOUTUBE_COOKIES environment variable found');
+    }
+};
+
 app.get('/', (req, res) => {
     res.send('Server is running and healthy!');
 });
@@ -46,11 +60,18 @@ app.get('/info', async (req, res) => {
             return res.status(400).json({ error: 'No URL provided' });
         }
 
-        const metadata = await ytDlpWrap.execPromise([
+        const args = [
             videoURL,
-            '--dump-json',
-            '--extractor-args', 'youtube:player_client=tv'
-        ]);
+            '--dump-json'
+        ];
+
+        if (fs.existsSync(cookiesPath)) {
+            args.push('--cookies', cookiesPath);
+        }
+        args.push('--extractor-args', 'youtube:player_client=tv');
+
+
+        const metadata = await ytDlpWrap.execPromise(args);
 
         const info = JSON.parse(metadata);
 
@@ -78,11 +99,16 @@ app.get('/download', async (req, res) => {
         }
 
         // Get title first for filename
-        const metadata = await ytDlpWrap.execPromise([
+        const args = [
             videoURL,
-            '--dump-json',
-            '--extractor-args', 'youtube:player_client=tv'
-        ]);
+            '--dump-json'
+        ];
+        if (fs.existsSync(cookiesPath)) {
+            args.push('--cookies', cookiesPath);
+        }
+        args.push('--extractor-args', 'youtube:player_client=tv');
+
+        const metadata = await ytDlpWrap.execPromise(args);
         const info = JSON.parse(metadata);
         const title = info.title.replace(/[^\w\s]/gi, '');
 
@@ -94,14 +120,20 @@ app.get('/download', async (req, res) => {
         // 2. If not found, fall back to best available (may need ffmpeg, but yt-dlp will handle it)
         const formatOptions = 'best[ext=mp4][acodec!=none][vcodec!=none]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best';
 
-        const stream = ytDlpWrap.execStream([
+        const streamArgs = [
             videoURL,
             '-f', formatOptions,
             '--merge-output-format', 'mp4',
             '--ffmpeg-location', ffmpegPath,
-            '--extractor-args', 'youtube:player_client=tv',
             '-o', '-'
-        ]);
+        ];
+
+        if (fs.existsSync(cookiesPath)) {
+            streamArgs.push('--cookies', cookiesPath);
+        }
+        streamArgs.push('--extractor-args', 'youtube:player_client=tv');
+
+        const stream = ytDlpWrap.execStream(streamArgs);
 
         stream.pipe(res);
 
@@ -125,6 +157,7 @@ app.get('/download', async (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 // Initialize binary then start server
+ensureCookies();
 ensureBinary().then(() => {
     const server = app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
