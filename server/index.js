@@ -14,11 +14,15 @@ const ytDlpWrap = new YTDlpWrap(ytDlpBinaryPath);
 // Ensure binary exists and permissions are set
 const ensureBinary = async () => {
     try {
-        if (!fs.existsSync(ytDlpBinaryPath)) {
-            console.log('Downloading yt-dlp binary...');
-            await YTDlpWrap.downloadFromGithub(ytDlpBinaryPath);
-            console.log('Downloaded yt-dlp binary');
+        // Always delete and re-download to ensure latest version (crucial for bypassing YouTube blocks)
+        if (fs.existsSync(ytDlpBinaryPath)) {
+            fs.unlinkSync(ytDlpBinaryPath);
         }
+
+        console.log('Downloading latest yt-dlp binary...');
+        await YTDlpWrap.downloadFromGithub(ytDlpBinaryPath);
+        console.log('Downloaded yt-dlp binary');
+
         // Ensure executable permissions
         try {
             fs.chmodSync(ytDlpBinaryPath, '755');
@@ -45,7 +49,7 @@ app.get('/info', async (req, res) => {
         const metadata = await ytDlpWrap.execPromise([
             videoURL,
             '--dump-json',
-            '--extractor-args', 'youtube:player_client=ios'
+            '--extractor-args', 'youtube:player_client=tv'
         ]);
 
         const info = JSON.parse(metadata);
@@ -77,7 +81,7 @@ app.get('/download', async (req, res) => {
         const metadata = await ytDlpWrap.execPromise([
             videoURL,
             '--dump-json',
-            '--extractor-args', 'youtube:player_client=ios'
+            '--extractor-args', 'youtube:player_client=tv'
         ]);
         const info = JSON.parse(metadata);
         const title = info.title.replace(/[^\w\s]/gi, '');
@@ -95,7 +99,7 @@ app.get('/download', async (req, res) => {
             '-f', formatOptions,
             '--merge-output-format', 'mp4',
             '--ffmpeg-location', ffmpegPath,
-            '--extractor-args', 'youtube:player_client=ios',
+            '--extractor-args', 'youtube:player_client=tv',
             '-o', '-'
         ]);
 
