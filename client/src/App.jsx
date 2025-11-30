@@ -22,8 +22,10 @@ function App() {
       const response = await axios.get(`${apiUrl}/info?url=${encodeURIComponent(url)}`);
       setVideoInfo(response.data);
     } catch (err) {
-      setError('Failed to fetch video info. Please check the URL.');
       console.error(err);
+      const errorMsg = err.response?.data?.details || err.response?.data?.error || 'Failed to fetch video info. Please check the URL.';
+      const stderr = err.response?.data?.stderr ? `\nDetails: ${err.response.data.stderr}` : '';
+      setError(errorMsg + stderr);
     } finally {
       setLoading(false);
     }
