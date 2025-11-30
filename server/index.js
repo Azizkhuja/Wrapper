@@ -38,8 +38,20 @@ const cookiesPath = path.join(__dirname, 'cookies.txt');
 const ensureCookies = () => {
     if (process.env.YOUTUBE_COOKIES) {
         try {
-            fs.writeFileSync(cookiesPath, process.env.YOUTUBE_COOKIES);
-            console.log('Cookies file created from environment variable');
+            let cookiesContent = process.env.YOUTUBE_COOKIES;
+            // Fix potential newline issues from env var pasting (common in some dashboards)
+            if (cookiesContent.includes('\\n')) {
+                cookiesContent = cookiesContent.replace(/\\n/g, '\n');
+            }
+
+            // Basic validation
+            if (cookiesContent.trim().startsWith('[') || cookiesContent.trim().startsWith('{')) {
+                console.warn('WARNING: YOUTUBE_COOKIES appears to be in JSON format. yt-dlp requires Netscape format (cookies.txt).');
+            }
+
+            fs.writeFileSync(cookiesPath, cookiesContent);
+            console.log('Cookies file created. Length:', cookiesContent.length);
+            console.log('First line:', cookiesContent.split('\n')[0]);
         } catch (err) {
             console.error('Error creating cookies file:', err);
         }
