@@ -12,16 +12,47 @@ const ytDlpBinaryPath = path.join(__dirname, 'yt-dlp');
 const ytDlpWrap = new YTDlpWrap(ytDlpBinaryPath);
 
 // Ensure binary exists and permissions are set
+const { exec } = require('child_process');
+
+// Ensure binary exists and permissions are set
 const ensureBinary = async () => {
     try {
-        // Always delete and re-download to ensure latest version (crucial for bypassing YouTube blocks)
-        if (fs.existsSync(ytDlpBinaryPath)) {
-            fs.unlinkSync(ytDlpBinaryPath);
+        const tempPath = ytDlpBinaryPath + '.new';
+        console.log('Attempting to download latest yt-dlp binary...');
+
+        try {
+            // Try downloading to temp file first
+            await YTDlpWrap.downloadFromGithub(tempPath);
+            console.log('Downloaded to temp path');
+
+            // If successful, rename to actual path
+            if (fs.existsSync(ytDlpBinaryPath)) {
+                fs.unlinkSync(ytDlpBinaryPath);
+            }
+            fs.renameSync(tempPath, ytDlpBinaryPath);
+            console.log('Updated yt-dlp binary successfully');
+        } catch (downloadError) {
+            console.error('Standard download failed:', downloadError.message);
+
+            // Fallback to curl if standard download fails
+            console.log('Trying fallback download with curl...');
+            await new Promise((resolve, reject) => {
+                exec(`curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "${ytDlpBinaryPath}"`, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error('Curl failed:', stderr);
+                        reject(error);
+                    } else {
+                        console.log('Curl download successful');
+                        resolve();
+                    }
+                });
+            });
         }
 
-        console.log('Downloading latest yt-dlp binary...');
-        await YTDlpWrap.downloadFromGithub(ytDlpBinaryPath);
-        console.log('Downloaded yt-dlp binary');
+        // Verify binary exists
+        if (!fs.existsSync(ytDlpBinaryPath)) {
+            throw new Error('Binary not found after download attempts');
+        }
 
         // Ensure executable permissions
         try {
@@ -30,7 +61,14 @@ const ensureBinary = async () => {
             console.log('Error setting permissions:', e);
         }
     } catch (err) {
-        console.error('Error in ensureBinary:', err);
+        console.error('CRITICAL ERROR in ensureBinary:', err);
+        // Don't exit process, but log heavily. 
+        // If binary is missing, requests will fail, but maybe it exists from previous run?
+        if (fs.existsSync(ytDlpBinaryPath)) {
+            console.log('Recovered: Using existing binary despite update failure');
+        } else {
+            console.error('FATAL: No yt-dlp binary available');
+        }
     }
 };
 
