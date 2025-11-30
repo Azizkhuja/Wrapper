@@ -49,6 +49,11 @@ const ensureCookies = () => {
                 console.warn('WARNING: YOUTUBE_COOKIES appears to be in JSON format. yt-dlp requires Netscape format (cookies.txt).');
             }
 
+            // Force Netscape header if missing
+            if (!cookiesContent.startsWith('# Netscape HTTP Cookie File')) {
+                cookiesContent = '# Netscape HTTP Cookie File\n' + cookiesContent;
+            }
+
             fs.writeFileSync(cookiesPath, cookiesContent);
             console.log('Cookies file created. Length:', cookiesContent.length);
             console.log('First line:', cookiesContent.split('\n')[0]);
