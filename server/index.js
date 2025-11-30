@@ -45,8 +45,7 @@ app.get('/info', async (req, res) => {
         const metadata = await ytDlpWrap.execPromise([
             videoURL,
             '--dump-json',
-            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            '--extractor-args', 'youtube:player_client=android'
+            '--extractor-args', 'youtube:player_client=ios'
         ]);
 
         const info = JSON.parse(metadata);
@@ -78,8 +77,7 @@ app.get('/download', async (req, res) => {
         const metadata = await ytDlpWrap.execPromise([
             videoURL,
             '--dump-json',
-            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            '--extractor-args', 'youtube:player_client=android'
+            '--extractor-args', 'youtube:player_client=ios'
         ]);
         const info = JSON.parse(metadata);
         const title = info.title.replace(/[^\w\s]/gi, '');
@@ -97,8 +95,7 @@ app.get('/download', async (req, res) => {
             '-f', formatOptions,
             '--merge-output-format', 'mp4',
             '--ffmpeg-location', ffmpegPath,
-            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            '--extractor-args', 'youtube:player_client=android',
+            '--extractor-args', 'youtube:player_client=ios',
             '-o', '-'
         ]);
 
