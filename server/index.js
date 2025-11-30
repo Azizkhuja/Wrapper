@@ -11,20 +11,33 @@ app.use(cors());
 const ytDlpBinaryPath = path.join(__dirname, 'yt-dlp');
 const ytDlpWrap = new YTDlpWrap(ytDlpBinaryPath);
 
-// Ensure binary exists
+// Ensure binary exists and permissions are set
 const ensureBinary = async () => {
-    if (!fs.existsSync(ytDlpBinaryPath)) {
-        console.log('Downloading yt-dlp binary...');
-        await YTDlpWrap.downloadFromGithub(ytDlpBinaryPath);
-        console.log('Downloaded yt-dlp binary');
+    try {
+        if (!fs.existsSync(ytDlpBinaryPath)) {
+            console.log('Downloading yt-dlp binary...');
+            await YTDlpWrap.downloadFromGithub(ytDlpBinaryPath);
+            console.log('Downloaded yt-dlp binary');
+        }
+        // Ensure executable permissions
+        try {
+            fs.chmodSync(ytDlpBinaryPath, '755');
+        } catch (e) {
+            console.log('Error setting permissions:', e);
+        }
+    } catch (err) {
+        console.error('Error in ensureBinary:', err);
     }
 };
 
-ensureBinary();
+app.get('/', (req, res) => {
+    res.send('Server is running and healthy!');
+});
 
 app.get('/info', async (req, res) => {
     try {
         const videoURL = req.query.url;
+        console.log('Received info request for:', videoURL);
         if (!videoURL) {
             return res.status(400).json({ error: 'No URL provided' });
         }
@@ -43,7 +56,12 @@ app.get('/info', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching info:', error);
-        res.status(500).json({ error: 'Failed to fetch video info' });
+        // Return detailed error for debugging
+        res.status(500).json({
+            error: 'Failed to fetch video info',
+            details: error.message,
+            stderr: error.stderr
+        });
     }
 });
 
@@ -90,14 +108,20 @@ app.get('/download', async (req, res) => {
     } catch (error) {
         console.error('Error downloading video:', error);
         if (!res.headersSent) {
-            res.status(500).json({ error: 'Failed to download video' });
+            res.status(500).json({
+                error: 'Failed to download video',
+                details: error.message
+            });
         }
     }
 });
 
 const PORT = process.env.PORT || 4000;
-const server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// Initialize binary then start server
+ensureBinary().then(() => {
+    const server = app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
 });
 
 process.on('unhandledRejection', (reason, promise) => {
