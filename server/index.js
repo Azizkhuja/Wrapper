@@ -79,13 +79,13 @@ app.get('/info', async (req, res) => {
 
         const args = [
             videoURL,
-            '--dump-json'
+            '--dump-json',
+            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         ];
 
         if (fs.existsSync(cookiesPath)) {
             args.push('--cookies', cookiesPath);
         }
-        args.push('--extractor-args', 'youtube:player_client=tv');
 
 
         const metadata = await ytDlpWrap.execPromise(args);
